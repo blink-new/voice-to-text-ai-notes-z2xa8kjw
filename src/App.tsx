@@ -48,19 +48,21 @@ function App() {
   const [newNoteTitle, setNewNoteTitle] = useState('')
 
   useEffect(() => {
-    // Initialize database and get user and load notes
-    const loadUserAndNotes = async () => {
-      try {
-        await initializeDatabase()
-        const currentUser = await blink.auth.me()
-        setUser(currentUser)
-        await loadNotes()
-      } catch (error) {
-        console.error('Error loading user:', error)
+    const unsubscribe = blink.auth.onAuthStateChanged(async (state) => {
+      if (state.isAuthenticated && state.user) {
+        setUser(state.user)
+        try {
+          await initializeDatabase()
+          await loadNotes()
+        } catch (error) {
+          console.error('Error initializing or loading notes:', error)
+        }
+      } else {
+        setUser(null)
       }
-    }
-    
-    loadUserAndNotes()
+    })
+
+    return () => unsubscribe()
   }, [])
 
   useEffect(() => {
@@ -271,6 +273,30 @@ function App() {
               <Badge variant="secondary" className="text-xs">
                 {user.email}
               </Badge>
+              {user ? (
+                <Button
+                  onClick={() => {
+                    blink.auth.logout();
+                    setUser(null);
+                  }}
+                  size="sm"
+                  variant="outline"
+                >
+                  <PlusCircle className="w-4 h-4 mr-1" />
+                  Sign Out
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => {
+                    blink.auth.login();
+                  }}
+                  size="sm"
+                  variant="outline"
+                >
+                  <PlusCircle className="w-4 h-4 mr-1" />
+                  Sign In
+                </Button>
+              )}
             </div>
           </div>
         </div>
